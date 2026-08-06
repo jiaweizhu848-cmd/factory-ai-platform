@@ -25,6 +25,7 @@ vllm serve cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit \
 ### 2. 启动后端
 
 ```bash
+cd factory-ai-platform
 cd backend
 python -m venv .venv
 source .venv/bin/activate
@@ -35,6 +36,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 ### 3. 启动前端
 
 ```bash
+cd factory-ai-platform
 cd frontend
 npm install
 npm run dev
