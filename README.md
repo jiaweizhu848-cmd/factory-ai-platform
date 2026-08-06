@@ -1,6 +1,45 @@
 # Factory AI Platform
 
-Factory AI Platform 是面向工厂场景的本地 AI 平台。当前基础 vLLM/Qwen 环境已经跑通，项目准备进入第一阶段应用开发。
+Factory AI Platform 是面向工厂场景的本地 AI 平台。当前基础 vLLM/Qwen 环境已经跑通，Sprint 1 目标是交付一个最小可运行聊天应用。
 
-请先阅读：[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)
+项目交接文档：[docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)
+
+Sprint 1 设计文档：[docs/sprint1-chat-design.md](docs/sprint1-chat-design.md)
+
+## 运行顺序
+
+### 1. 启动 vLLM
+
+```bash
+source /home/cngzf-ai/venvs/vllm/bin/activate
+
+vllm serve cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit \
+  --tensor-parallel-size 2 \
+  --gpu-memory-utilization 0.85 \
+  --max-model-len 16384 \
+  --max-num-seqs 128 \
+  --enable-prefix-caching \
+  --trust-remote-code
+```
+
+### 2. 启动后端
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+```
+
+### 3. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+前端默认通过 `/api/chat` 代理到 `http://localhost:8080/chat`。  
+后端默认调用 `http://localhost:8000/v1/chat/completions`。
 
