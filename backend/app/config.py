@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = 120.0
     api_tokens: str = "factory-dev-token"
     api_log_path: str = "logs/api_calls.jsonl"
+    api_rate_limit_requests: int = 60
+    api_rate_limit_window_seconds: int = 60
 
     model_config = SettingsConfigDict(env_prefix="", env_file=".env")
 

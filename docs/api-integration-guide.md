@@ -75,7 +75,37 @@ export API_TOKENS="line-dashboard-token,ewi-tool-token,mom-script-token"
 
 当前 token 是静态配置，适合 Sprint 2 阶段的内部原型。后续如果进入正式生产，应增加 token 生命周期、调用方权限、轮换机制和审计。
 
-## 4. 请求格式
+## 4. 限流
+
+当前 API 使用内存限流，按 Bearer token 维度限制调用频率。默认配置：
+
+```bash
+export API_RATE_LIMIT_REQUESTS=60
+export API_RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+含义：同一个 token 在 60 秒内最多调用 60 次 `/api/v1/chat`。
+
+超过限制时返回：
+
+```json
+{
+  "status": "error",
+  "request_id": "generated-uuid",
+  "error": {
+    "code": "rate_limited",
+    "message": "Too many requests"
+  }
+}
+```
+
+说明：
+
+- 当前限流数据只保存在后端进程内，重启后会清空。
+- 如果以后使用多进程、多机器或正式生产部署，应迁移到 Redis、数据库或 API 网关限流。
+- 如果某个内部应用需要更高频调用，建议先单独分配 token，便于审计和调整。
+
+## 5. 请求格式
 
 最小请求：
 
@@ -114,7 +144,7 @@ export API_TOKENS="line-dashboard-token,ewi-tool-token,mom-script-token"
 | `temperature` | number | 否 | `0.3` | 模型采样温度，范围 `0.0` 到 `2.0`。 |
 | `max_tokens` | integer | 否 | `512` | 最大输出 token，范围 `1` 到 `8192`。 |
 
-## 5. 响应格式
+## 6. 响应格式
 
 成功响应：
 
@@ -156,10 +186,11 @@ export API_TOKENS="line-dashboard-token,ewi-tool-token,mom-script-token"
 | HTTP 状态码 | `error.code` | 说明 |
 | --- | --- | --- |
 | `401` | `unauthorized` | token 缺失或错误。 |
+| `429` | `rate_limited` | 同一 token 在限流窗口内调用过多。 |
 | `422` | `validation_error` | 请求体字段缺失、为空或超出范围。 |
 | `502` | `llm_request_failed` | 后端调用 vLLM 失败。 |
 
-## 6. curl 示例
+## 7. curl 示例
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/chat \
@@ -197,7 +228,7 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-## 7. 调用日志
+## 8. 调用日志
 
 日志路径由环境变量控制：
 
@@ -228,7 +259,7 @@ export API_LOG_PATH="logs/api_calls.jsonl"
 tail -n 5 logs/api_calls.jsonl
 ```
 
-## 8. 接入建议
+## 9. 接入建议
 
 - 每个调用方使用独立 `caller`，便于后续统计和排查。
 - `metadata` 里放结构化信息，不要把完整问题重复塞进去。

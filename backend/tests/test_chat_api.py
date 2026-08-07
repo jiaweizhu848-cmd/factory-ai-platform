@@ -269,6 +269,43 @@ def test_api_v1_chat_logs_input_chars_without_input_text(monkeypatch, tmp_path):
     assert sensitive_input not in log_text
 
 
+def test_api_v1_chat_rate_limits_per_token(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "api_tokens", "rate-limit-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+    monkeypatch.setattr(settings, "api_rate_limit_requests", 1)
+    monkeypatch.setattr(settings, "api_rate_limit_window_seconds", 60)
+
+    calls = {"count": 0}
+
+    async def fake_create_chat_completion(messages, temperature, max_tokens):
+        calls["count"] += 1
+        return {"role": "assistant", "content": "answer"}
+
+    monkeypatch.setattr(
+        "app.main.create_chat_completion",
+        fake_create_chat_completion,
+    )
+
+    client = TestClient(app)
+    payload = {"input": "hello", "caller": "line-dashboard"}
+    headers = {"Authorization": "Bearer rate-limit-token"}
+
+    first_response = client.post("/api/v1/chat", headers=headers, json=payload)
+    second_response = client.post("/api/v1/chat", headers=headers, json=payload)
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 429
+    body = second_response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "rate_limited"
+    assert body["request_id"]
+    assert calls["count"] == 1
+
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"status": "error"' in log_text
+    assert '"error_code": "rate_limited"' in log_text
+
+
 def test_api_v1_chat_returns_standard_502_and_logs(monkeypatch, tmp_path):
     from app.services.llm_client import LlmClientError
 

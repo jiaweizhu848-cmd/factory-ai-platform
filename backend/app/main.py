@@ -11,6 +11,7 @@ from app.config import app_info, settings
 from app.schemas import ApiChatRequest, ApiChatResponse, ChatRequest, ChatResponse
 from app.services.api_logger import write_api_call_log
 from app.services.llm_client import LlmClientError, create_chat_completion
+from app.services.rate_limiter import api_rate_limiter
 from app.services.response_cleaner import clean_assistant_content
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -90,6 +91,28 @@ async def api_v1_chat(
             message="Invalid or missing bearer token",
         )
 
+    rate_limit_key = _authorization_token(authorization)
+    if not api_rate_limiter.allow(
+        rate_limit_key,
+        limit=settings.api_rate_limit_requests,
+        window_seconds=settings.api_rate_limit_window_seconds,
+    ):
+        duration_ms = _duration_ms(started_at)
+        _write_api_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="rate_limited",
+            error_message="Too many requests",
+        )
+        return _api_error(
+            status_code=429,
+            request_id=request_id,
+            code="rate_limited",
+            message="Too many requests",
+        )
+
     try:
         message = await create_chat_completion(
             messages=_prepare_messages([{"role": "user", "content": request.input}]),
@@ -137,14 +160,21 @@ def _prepare_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def _is_authorized(authorization: str | None) -> bool:
-    if not authorization or not authorization.startswith("Bearer "):
+    supplied_token = _authorization_token(authorization)
+    if not supplied_token:
         return False
 
-    supplied_token = authorization.removeprefix("Bearer ").strip()
     configured_tokens = [
         token.strip() for token in settings.api_tokens.split(",") if token.strip()
     ]
     return any(secrets.compare_digest(supplied_token, token) for token in configured_tokens)
+
+
+def _authorization_token(authorization: str | None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        return ""
+
+    return authorization.removeprefix("Bearer ").strip()
 
 
 def _api_error(

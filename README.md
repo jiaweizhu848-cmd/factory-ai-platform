@@ -80,6 +80,8 @@ Authentication uses a static bearer token from the backend environment:
 ```bash
 export API_TOKENS="factory-dev-token"
 export API_LOG_PATH="logs/api_calls.jsonl"
+export API_RATE_LIMIT_REQUESTS=60
+export API_RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
 Example request:
@@ -125,4 +127,6 @@ Error response shape:
 ```
 
 Each `/api/v1/chat` call writes one JSONL record to `API_LOG_PATH`. The log records metadata, status, duration, and `input_chars`; it does not record the full input text.
+
+The internal API has a simple in-memory per-token rate limit. Defaults: 60 requests per 60 seconds. Rate-limited calls return HTTP 429 with `error.code` set to `rate_limited`.
 
