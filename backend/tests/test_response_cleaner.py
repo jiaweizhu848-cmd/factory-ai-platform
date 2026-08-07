@@ -39,10 +39,10 @@ def test_clean_assistant_content_preserves_normal_answer():
     assert clean_assistant_content(raw) == raw.strip()
 
 
-def test_clean_assistant_content_falls_back_when_cleaned_empty():
+def test_clean_assistant_content_returns_placeholder_when_only_process_heading_remains():
     raw = "Thinking Process:"
 
-    assert clean_assistant_content(raw) == raw
+    assert clean_assistant_content(raw) == "抱歉，这次模型没有返回可展示的最终答案，请重新提问。"
 
 
 def test_clean_assistant_content_extracts_final_answer_without_colon():
@@ -284,3 +284,20 @@ Please add the isolated IP segment to the firewall allowlist.
         clean_assistant_content(raw)
         == "Hi Michael,\n\nPlease add the isolated IP segment to the firewall allowlist."
     )
+
+
+def test_clean_assistant_content_does_not_fallback_to_full_process_only_response():
+    raw = """Here's a thinking process:
+
+1. Analyze User Input:
+
+* Input Text: An email request in English addressed to Michael.
+* Task: Translate the content to Chinese.
+* Constraint: Direct answer only, no reasoning.
+
+2. Identify Key Components and Terminology:
+
+* Hi Michael -> 你好 Michael
+"""
+
+    assert clean_assistant_content(raw) == "抱歉，这次模型没有返回可展示的最终答案，请重新提问。"

@@ -1,6 +1,7 @@
 import re
 
 
+EMPTY_FINAL_ANSWER_MESSAGE = "抱歉，这次模型没有返回可展示的最终答案，请重新提问。"
 FINAL_MARKER_PATTERN = re.compile(r"^\s*(Final Answer|Final|Answer)\s*:?\s*$", re.IGNORECASE)
 PROCESS_HEADING_PATTERN = re.compile(
     r"^\s*(?:"
@@ -115,4 +116,15 @@ def _collapse_blank_lines(text: str) -> str:
 
 
 def _fallback_if_empty(cleaned: str, original: str) -> str:
-    return cleaned if cleaned else original
+    if cleaned:
+        return cleaned
+
+    if any(
+        PROCESS_HEADING_PATTERN.match(line)
+        or NUMBERED_PROCESS_HEADING_PATTERN.match(line)
+        or _is_process_boundary(line)
+        for line in original.splitlines()
+    ):
+        return EMPTY_FINAL_ANSWER_MESSAGE
+
+    return original
