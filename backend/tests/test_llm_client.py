@@ -29,11 +29,7 @@ async def test_create_chat_completion_parses_vllm_response(mock_vllm):
     def handler(request):
         assert request.url == "http://localhost:8000/v1/chat/completions"
         payload = request.read()
-        assert b'"stop"' in payload
-        assert b'Check Against Constraints' in payload
-        assert b'Check Accuracy' in payload
-        assert b'4. **Check' in payload
-        assert b'Final Output Generation' in payload
+        assert b'"stop"' not in payload
         return httpx.Response(
             200,
             json={"choices": [{"message": {"role": "assistant", "content": "ok"}}]},

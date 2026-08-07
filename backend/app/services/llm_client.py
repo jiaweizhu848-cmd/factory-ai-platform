@@ -7,28 +7,6 @@ class LlmClientError(RuntimeError):
     pass
 
 
-STOP_SEQUENCES = [
-    "\nThinking Process:",
-    "\nInternal Monologue:",
-    "\nDrafting the response:",
-    "\nCheck Constraints:",
-    "\nCheck Against Constraints:",
-    "\nCheck Accuracy",
-    "\nFinal Output Generation:",
-    "\nOutput Generation",
-    "\nSelf-Correction/",
-    "\n* Meets all constraints",
-    "\n* Output matches",
-    "\n* Proceed",
-    "\n* Done",
-    "\n4. Check",
-    "\n4. **Check",
-    "\n5. Final",
-    "\n**4. Check",
-    "\n**5. Final",
-]
-
-
 async def create_chat_completion(
     messages: list[dict[str, str]],
     temperature: float,
@@ -39,7 +17,6 @@ async def create_chat_completion(
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
-        "stop": STOP_SEQUENCES,
     }
     headers = {"Authorization": f"Bearer {settings.vllm_api_key}"}
 
