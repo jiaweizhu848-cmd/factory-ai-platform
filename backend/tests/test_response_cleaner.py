@@ -170,3 +170,24 @@ def test_clean_assistant_content_handles_here_is_a_thinking_process_wrapper():
         clean_assistant_content(raw)
         == "我是 Factory AI，可以帮助你进行工厂场景下的信息查询、数据分析、文档整理和问题排查。"
     )
+
+
+def test_clean_assistant_content_truncates_numbered_process_sections_after_answer():
+    raw = """I am Factory AI. I can answer questions and help with writing, coding, data analysis, reasoning, translation, and creative generation.
+
+3. Check Constraints:
+
+- Direct answer? Yes.
+- Only final answer? Yes.
+
+4. Final Output Generation: (Matches the draft)
+
+I am Factory AI. I can answer questions.
+
+- Self-Correction/Refinement during thought: The prompt says final answer only.
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "I am Factory AI. I can answer questions and help with writing, coding, data analysis, reasoning, translation, and creative generation."
+    )

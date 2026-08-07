@@ -13,6 +13,12 @@ PROCESS_HEADING_PATTERN = re.compile(
     r")\s*:?\s*$",
     re.IGNORECASE,
 )
+NUMBERED_PROCESS_HEADING_PATTERN = re.compile(
+    r"^\s*(?:\d+\.\s*)?"
+    r"(?:Check Constraints|Final Output Generation|Self-Correction/Refinement during thought|Output Generation)"
+    r"\b.*$",
+    re.IGNORECASE,
+)
 
 
 def clean_assistant_content(content: str) -> str:
@@ -30,6 +36,12 @@ def clean_assistant_content(content: str) -> str:
     lines = []
     skipping_process_block = False
     for line in original.splitlines():
+        if NUMBERED_PROCESS_HEADING_PATTERN.match(line):
+            if any(existing_line.strip() for existing_line in lines):
+                break
+            skipping_process_block = True
+            continue
+
         if PROCESS_HEADING_PATTERN.match(line):
             skipping_process_block = True
             continue
