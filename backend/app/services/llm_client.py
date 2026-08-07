@@ -13,6 +13,7 @@ STOP_SEQUENCES = [
     "\nDrafting the response:",
     "\nCheck Constraints:",
     "\nCheck Against Constraints:",
+    "\nCheck Accuracy",
     "\nFinal Output Generation:",
     "\nOutput Generation",
     "\nSelf-Correction/",

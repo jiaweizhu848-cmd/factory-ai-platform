@@ -31,6 +31,7 @@ async def test_create_chat_completion_parses_vllm_response(mock_vllm):
         payload = request.read()
         assert b'"stop"' in payload
         assert b'Check Against Constraints' in payload
+        assert b'Check Accuracy' in payload
         assert b'Final Output Generation' in payload
         return httpx.Response(
             200,

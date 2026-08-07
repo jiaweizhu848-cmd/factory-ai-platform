@@ -22,6 +22,7 @@ NUMBERED_PROCESS_HEADING_PATTERN = re.compile(
 PROCESS_BOUNDARY_PATTERN = re.compile(
     r"^(?:"
     r"Check(?: Against)? Constraints|"
+    r"Check Accuracy (?:&|and) Tone|"
     r"Final Output Generation|"
     r"Self-Correction/(?:Refinement|Verification) during (?:thought|drafting)|"
     r"Output Generation|"

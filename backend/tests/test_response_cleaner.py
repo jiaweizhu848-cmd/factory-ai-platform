@@ -253,3 +253,20 @@ def test_clean_assistant_content_truncates_markdown_bold_process_sections_after_
         clean_assistant_content(raw)
         == "I am Factory AI. I can answer questions and provide support."
     )
+
+
+def test_clean_assistant_content_truncates_accuracy_and_tone_sections_after_answer():
+    raw = """Hi Michael,
+
+Please add the isolated IP segment to the firewall allowlist.
+
+4. Check Accuracy & Tone:
+
+* Matches original meaning precisely.
+* Technical.
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "Hi Michael,\n\nPlease add the isolated IP segment to the firewall allowlist."
+    )
