@@ -19,9 +19,17 @@ NUMBERED_PROCESS_HEADING_PATTERN = re.compile(
     r"\b.*$",
     re.IGNORECASE,
 )
-TRAILING_PROCESS_BULLET_PATTERN = re.compile(
-    r"^\s*(?:[-*]\s*)?"
-    r"(?:Meets all constraints|Output matches|Proceed|Done|Self-Correction/(?:Refinement|Verification) during thought|Output Generation)"
+PROCESS_BOUNDARY_PATTERN = re.compile(
+    r"^(?:"
+    r"Check(?: Against)? Constraints|"
+    r"Final Output Generation|"
+    r"Self-Correction/(?:Refinement|Verification) during (?:thought|drafting)|"
+    r"Output Generation|"
+    r"Meets all constraints|"
+    r"Output matches|"
+    r"Proceed|"
+    r"Done"
+    r")"
     r"\b.*$",
     re.IGNORECASE,
 )
@@ -42,12 +50,10 @@ def clean_assistant_content(content: str) -> str:
     lines = []
     skipping_process_block = False
     for line in original.splitlines():
-        if TRAILING_PROCESS_BULLET_PATTERN.match(line) and any(
-            existing_line.strip() for existing_line in lines
-        ):
+        if _is_process_boundary(line) and any(existing_line.strip() for existing_line in lines):
             break
 
-        if NUMBERED_PROCESS_HEADING_PATTERN.match(line):
+        if NUMBERED_PROCESS_HEADING_PATTERN.match(line) or _is_process_boundary(line):
             if any(existing_line.strip() for existing_line in lines):
                 break
             skipping_process_block = True
@@ -72,6 +78,16 @@ def _looks_like_process_line(line: str) -> bool:
     if not stripped:
         return True
     return bool(re.match(r"^(?:\d+\.|\*|-)\s", stripped))
+
+
+def _is_process_boundary(line: str) -> bool:
+    stripped = line.strip()
+    stripped = re.sub(r"^\s*[-*]\s+", "", stripped)
+    stripped = stripped.strip("*_` \t")
+    stripped = re.sub(r"^\s*\d+\.\s*", "", stripped)
+    stripped = stripped.strip("*_` \t")
+    stripped = stripped.lstrip("(").strip()
+    return bool(PROCESS_BOUNDARY_PATTERN.match(stripped))
 
 
 def _find_final_marker_line(lines: list[str]) -> int | None:

@@ -232,3 +232,24 @@ def test_clean_assistant_content_truncates_trailing_self_check_bullets_after_ans
         clean_assistant_content(raw)
         == "I am Factory AI. I can answer questions, provide information, help with writing and coding, analyze data, and translate."
     )
+
+
+def test_clean_assistant_content_truncates_markdown_bold_process_sections_after_answer():
+    raw = """I am Factory AI. I can answer questions and provide support.
+
+**4. Check Against Constraints:**
+
+* Direct answer? Yes.
+* No thinking process/reasoning? Yes.
+
+**5. Final Output Generation:** (Matches the drafted response)
+
+"I am Factory AI. I can answer questions and provide support."
+
+(Self-Correction/Verification during drafting: The prompt says final answer only.)
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "I am Factory AI. I can answer questions and provide support."
+    )
