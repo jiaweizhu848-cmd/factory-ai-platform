@@ -282,6 +282,83 @@ def test_api_v1_health_returns_api_status_without_auth():
     assert "token" not in response.text.lower()
 
 
+def test_admin_login_rejects_wrong_password(monkeypatch):
+    monkeypatch.setattr(settings, "admin_password", "correct-password")
+    monkeypatch.setattr(settings, "admin_session_token", "admin-session")
+
+    client = TestClient(app)
+    response = client.post("/admin/login", json={"password": "wrong-password"})
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["request_id"]
+
+
+def test_admin_login_returns_admin_token(monkeypatch):
+    monkeypatch.setattr(settings, "admin_password", "correct-password")
+    monkeypatch.setattr(settings, "admin_session_token", "admin-session")
+
+    client = TestClient(app)
+    response = client.post("/admin/login", json={"password": "correct-password"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "admin_token": "admin-session",
+    }
+
+
+def test_admin_api_summary_requires_admin_token(monkeypatch):
+    monkeypatch.setattr(settings, "admin_session_token", "admin-session")
+
+    client = TestClient(app)
+    response = client.get("/admin/api-summary")
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["request_id"]
+
+
+def test_admin_api_summary_returns_health_and_logs(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "admin_session_token", "admin-session")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+
+    write_api_call_log(
+        settings.api_log_path,
+        {
+            "timestamp": "2026-08-07T00:00:00+00:00",
+            "request_id": "one",
+            "caller": "line-dashboard",
+            "task_type": "chat",
+            "metadata": {},
+            "input_chars": 10,
+            "status": "ok",
+            "duration_ms": 100,
+        },
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/admin/api-summary",
+        headers={"Authorization": "Bearer admin-session"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["health"]["model"] == settings.vllm_model
+    assert body["health"]["vllm_base_url"] == settings.vllm_base_url
+    assert body["summary"]["total_calls"] == 1
+    assert body["rate_limit"] == {
+        "requests": settings.api_rate_limit_requests,
+        "window_seconds": settings.api_rate_limit_window_seconds,
+    }
+
+
 def test_api_v1_chat_returns_standard_response_and_logs(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "api_tokens", "factory-token")
     monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))

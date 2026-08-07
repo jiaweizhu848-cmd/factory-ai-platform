@@ -88,6 +88,8 @@ export API_TOKENS="factory-dev-token"
 export API_LOG_PATH="logs/api_calls.jsonl"
 export API_RATE_LIMIT_REQUESTS=60
 export API_RATE_LIMIT_WINDOW_SECONDS=60
+export ADMIN_PASSWORD="factory-admin"
+export ADMIN_SESSION_TOKEN="factory-admin-session"
 ```
 
 Example request:
@@ -135,4 +137,6 @@ Error response shape:
 Each `/api/v1/chat` call writes one JSONL record to `API_LOG_PATH`. The log records metadata, status, duration, and `input_chars`; it does not record the full input text.
 
 The internal API has a simple in-memory per-token rate limit. Defaults: 60 requests per 60 seconds. Rate-limited calls return HTTP 429 with `error.code` set to `rate_limited`.
+
+The browser UI includes an `API 管理` page. Enter `ADMIN_PASSWORD` to view API health, call summary, rate limit settings, and generate curl or PowerShell integration examples.
 

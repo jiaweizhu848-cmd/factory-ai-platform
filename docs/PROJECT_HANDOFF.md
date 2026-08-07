@@ -184,6 +184,7 @@ Sprint 2 第一批能力已落地：
 - 新增 `GET /api/v1/logs/summary`，便于查看调用总量、成功/失败数量、平均耗时、caller 分布和错误码分布。
 - JSONL 调用日志已记录 `input_chars`，但不记录完整输入文本，降低敏感工厂信息落盘风险。
 - 新增内存级按 token 限流，默认 60 秒 60 次；超限返回 429 / `rate_limited`。
+- 新增网页 `API 管理` 页签，支持管理员登录、查看 API 状态/调用统计、生成 curl 和 PowerShell 接入示例。
 - 新增内部系统接入说明：[docs/api-integration-guide.md](api-integration-guide.md)。
 - 当前网页 `/chat` 保持可用，不受外部 API token 影响。
 

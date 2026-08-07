@@ -45,6 +45,15 @@ class ApiChatResponse(BaseModel):
     duration_ms: int
 
 
+class AdminLoginRequest(BaseModel):
+    password: str = Field(min_length=1)
+
+
+class AdminLoginResponse(BaseModel):
+    status: Literal["ok"]
+    admin_token: str
+
+
 class ApiErrorDetail(BaseModel):
     code: str
     message: str

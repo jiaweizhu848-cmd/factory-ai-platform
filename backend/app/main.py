@@ -8,7 +8,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.config import app_info, settings
-from app.schemas import ApiChatRequest, ApiChatResponse, ChatRequest, ChatResponse
+from app.schemas import (
+    AdminLoginRequest,
+    AdminLoginResponse,
+    ApiChatRequest,
+    ApiChatResponse,
+    ChatRequest,
+    ChatResponse,
+)
 from app.services.api_logger import summarize_api_call_logs, write_api_call_log
 from app.services.llm_client import LlmClientError, create_chat_completion
 from app.services.rate_limiter import api_rate_limiter
@@ -43,12 +50,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/v1/health")
 def api_v1_health() -> dict[str, str]:
-    return {
-        "status": "ok",
-        "service": app_info.name,
-        "model": settings.vllm_model,
-        "vllm_base_url": settings.vllm_base_url,
-    }
+    return _api_health_payload()
 
 
 @app.get("/api/v1/logs/summary")
@@ -63,6 +65,41 @@ def api_v1_logs_summary(authorization: str | None = Header(default=None)):
         )
 
     return summarize_api_call_logs(settings.api_log_path)
+
+
+@app.post("/admin/login", response_model=AdminLoginResponse)
+def admin_login(request: AdminLoginRequest):
+    if not secrets.compare_digest(request.password, settings.admin_password):
+        return _api_error(
+            status_code=401,
+            request_id=str(uuid4()),
+            code="unauthorized",
+            message="Invalid admin password",
+        )
+
+    return AdminLoginResponse(status="ok", admin_token=settings.admin_session_token)
+
+
+@app.get("/admin/api-summary")
+def admin_api_summary(authorization: str | None = Header(default=None)):
+    request_id = str(uuid4())
+    if not _is_admin_authorized(authorization):
+        return _api_error(
+            status_code=401,
+            request_id=request_id,
+            code="unauthorized",
+            message="Invalid or missing admin token",
+        )
+
+    return {
+        "status": "ok",
+        "health": _api_health_payload(),
+        "summary": summarize_api_call_logs(settings.api_log_path),
+        "rate_limit": {
+            "requests": settings.api_rate_limit_requests,
+            "window_seconds": settings.api_rate_limit_window_seconds,
+        },
+    }
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -184,11 +221,28 @@ def _is_authorized(authorization: str | None) -> bool:
     return any(secrets.compare_digest(supplied_token, token) for token in configured_tokens)
 
 
+def _is_admin_authorized(authorization: str | None) -> bool:
+    supplied_token = _authorization_token(authorization)
+    return bool(supplied_token) and secrets.compare_digest(
+        supplied_token,
+        settings.admin_session_token,
+    )
+
+
 def _authorization_token(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         return ""
 
     return authorization.removeprefix("Bearer ").strip()
+
+
+def _api_health_payload() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": app_info.name,
+        "model": settings.vllm_model,
+        "vllm_base_url": settings.vllm_base_url,
+    }
 
 
 def _api_error(

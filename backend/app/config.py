@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     api_log_path: str = "logs/api_calls.jsonl"
     api_rate_limit_requests: int = 60
     api_rate_limit_window_seconds: int = 60
+    admin_password: str = "factory-admin"
+    admin_session_token: str = "factory-admin-session"
 
     model_config = SettingsConfigDict(env_prefix="", env_file=".env")
 

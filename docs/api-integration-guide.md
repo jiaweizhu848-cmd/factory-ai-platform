@@ -83,7 +83,44 @@ export API_TOKENS="line-dashboard-token,ewi-tool-token,mom-script-token"
 
 当前 token 是静态配置，适合 Sprint 2 阶段的内部原型。后续如果进入正式生产，应增加 token 生命周期、调用方权限、轮换机制和审计。
 
-## 4. 限流
+## 4. 管理页面
+
+浏览器前端提供 `API 管理` 页签。进入前需要管理员密码：
+
+```bash
+export ADMIN_PASSWORD="factory-admin"
+export ADMIN_SESSION_TOKEN="factory-admin-session"
+```
+
+登录成功后，前端会把后端返回的管理 token 保存到浏览器 `sessionStorage`。关闭浏览器会话后需要重新登录。
+
+当前管理页提供：
+
+- API 健康状态
+- 调用统计
+- 限流配置展示
+- caller / task_type / metadata 表单
+- curl 示例生成
+- PowerShell 示例生成
+- 一键复制
+
+当前管理页不会真正创建、删除或禁用 API token。Sprint 2 仍使用环境变量 `API_TOKENS` 管理可用 token；后续生产化时再升级到数据库 token 管理。
+
+管理接口：
+
+```text
+POST /admin/login
+GET /admin/api-summary
+```
+
+前端通过 Vite 代理访问：
+
+```text
+POST /api/admin/login
+GET /api/admin/api-summary
+```
+
+## 5. 限流
 
 当前 API 使用内存限流，按 Bearer token 维度限制调用频率。默认配置：
 
@@ -113,7 +150,7 @@ export API_RATE_LIMIT_WINDOW_SECONDS=60
 - 如果以后使用多进程、多机器或正式生产部署，应迁移到 Redis、数据库或 API 网关限流。
 - 如果某个内部应用需要更高频调用，建议先单独分配 token，便于审计和调整。
 
-## 5. 请求格式
+## 6. 请求格式
 
 最小请求：
 
@@ -152,7 +189,7 @@ export API_RATE_LIMIT_WINDOW_SECONDS=60
 | `temperature` | number | 否 | `0.3` | 模型采样温度，范围 `0.0` 到 `2.0`。 |
 | `max_tokens` | integer | 否 | `512` | 最大输出 token，范围 `1` 到 `8192`。 |
 
-## 6. 响应格式
+## 7. 响应格式
 
 成功响应：
 
@@ -198,7 +235,7 @@ export API_RATE_LIMIT_WINDOW_SECONDS=60
 | `422` | `validation_error` | 请求体字段缺失、为空或超出范围。 |
 | `502` | `llm_request_failed` | 后端调用 vLLM 失败。 |
 
-## 7. curl 示例
+## 8. curl 示例
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/chat \
@@ -236,7 +273,7 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-## 8. 调用日志
+## 9. 调用日志
 
 日志路径由环境变量控制：
 
@@ -301,7 +338,7 @@ curl http://localhost:8080/api/v1/logs/summary \
 }
 ```
 
-## 9. 接入建议
+## 10. 接入建议
 
 - 每个调用方使用独立 `caller`，便于后续统计和排查。
 - `metadata` 里放结构化信息，不要把完整问题重复塞进去。
