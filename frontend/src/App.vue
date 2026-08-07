@@ -1,18 +1,34 @@
 <script setup>
-import { nextTick, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { marked } from "marked";
 import { sendChat } from "./api/chat";
+
+marked.setOptions({ breaks: true, gfm: true });
+
+const welcomeMessage = {
+  role: "assistant",
+  content: "你好，我是 Factory AI。请输入你的问题。",
+  local: true,
+};
 
 const input = ref("");
 const loading = ref(false);
 const error = ref("");
-const messages = ref([
-  {
-    role: "assistant",
-    content: "你好，我是 Factory AI。请输入你的问题。",
-    local: true,
-  },
-]);
+const messages = ref([{ ...welcomeMessage }]);
 const messageList = ref(null);
+const canClear = computed(
+  () => messages.value.length > 1 || input.value.trim() || error.value,
+);
+
+function renderMarkdown(content) {
+  return marked.parse(content || "");
+}
+
+function clearConversation() {
+  messages.value = [{ ...welcomeMessage }];
+  input.value = "";
+  error.value = "";
+}
 
 async function scrollToBottom() {
   await nextTick();
@@ -58,7 +74,17 @@ async function submitMessage() {
         <h1>Factory AI Chat</h1>
         <p>本地 Qwen 多轮对话</p>
       </div>
-      <span class="service-pill">vLLM: localhost:8000</span>
+      <div class="topbar-actions">
+        <span class="service-pill">vLLM: localhost:8000</span>
+        <button
+          class="clear-button"
+          type="button"
+          :disabled="loading || !canClear"
+          @click="clearConversation"
+        >
+          清空会话
+        </button>
+      </div>
     </header>
 
     <section ref="messageList" class="messages">
@@ -68,8 +94,15 @@ async function submitMessage() {
         class="message"
         :class="message.role"
       >
-        <div class="role">{{ message.role === "user" ? "用户" : "Factory AI" }}</div>
-        <div class="content">{{ message.content }}</div>
+        <div class="role">
+          {{ message.role === "user" ? "用户" : "Factory AI" }}
+        </div>
+        <div
+          v-if="message.role === 'assistant'"
+          class="content markdown-body"
+          v-html="renderMarkdown(message.content)"
+        ></div>
+        <div v-else class="content">{{ message.content }}</div>
       </article>
       <article v-if="loading" class="message assistant">
         <div class="role">Factory AI</div>

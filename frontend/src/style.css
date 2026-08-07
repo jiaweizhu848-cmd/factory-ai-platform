@@ -52,6 +52,14 @@ textarea {
   border-bottom: 1px solid #d8dde1;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .topbar h1 {
   margin: 0;
   color: #182026;
@@ -77,6 +85,31 @@ textarea {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.clear-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid #c4ccd2;
+  border-radius: 8px;
+  color: #394650;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clear-button:hover:not(:disabled) {
+  border-color: #8fa09a;
+  color: #235248;
+  background: #f1f7f4;
+}
+
+.clear-button:disabled {
+  color: #94a0a8;
+  background: #eef1f3;
+  cursor: not-allowed;
 }
 
 .messages {
@@ -121,6 +154,56 @@ textarea {
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.markdown-body {
+  white-space: normal;
+}
+
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body pre,
+.markdown-body blockquote {
+  margin: 0 0 12px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 22px;
+}
+
+.markdown-body code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: #1c3430;
+  background: #edf2f0;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.92em;
+}
+
+.markdown-body pre {
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid #d3dbdf;
+  border-radius: 8px;
+  background: #f3f6f7;
+}
+
+.markdown-body pre code {
+  display: block;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  white-space: pre;
 }
 
 .error {
@@ -210,6 +293,10 @@ textarea {
 
   .service-pill {
     white-space: normal;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
   }
 
   .message {
