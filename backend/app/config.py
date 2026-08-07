@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     vllm_model: str = "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit"
     vllm_api_key: str = "EMPTY"
     request_timeout_seconds: float = 120.0
+    api_tokens: str = "factory-dev-token"
+    api_log_path: str = "logs/api_calls.jsonl"
 
     model_config = SettingsConfigDict(env_prefix="", env_file=".env")
 

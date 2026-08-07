@@ -1,7 +1,7 @@
 # Factory AI Platform 项目交接文档
 
 更新时间：2026-08-07  
-当前阶段：Sprint 1 暂停收尾，已交付本地 Qwen 单轮任务 Chat MVP  
+当前阶段：Sprint 2 已开始，正在建设 Factory AI API 基座  
 当前主分支：`master`
 
 ## 1. 项目定位
@@ -170,6 +170,17 @@ Sprint 1 当前已暂停收尾，完成范围如下：
 - `e7661f9 fix: remove vllm stop sequences to avoid truncation`
 - `5ebb022 fix: clean partial accuracy reasoning heading`
 - `d1199dc fix: stop accuracy tone reasoning sections`
+
+## 5.1 Sprint 2 已开始内容
+
+Sprint 2 第一批能力已落地：
+
+- 新增面向外部系统调用的 `POST /api/v1/chat`。
+- 支持静态 Bearer token 认证，配置项为 `API_TOKENS`。
+- 支持标准响应字段：`status`、`request_id`、`answer`、`model`、`duration_ms`。
+- 支持标准错误响应，当前覆盖 401、422、502。
+- 支持 JSONL 调用日志，配置项为 `API_LOG_PATH`，默认 `logs/api_calls.jsonl`。
+- 当前网页 `/chat` 保持可用，不受外部 API token 影响。
 
 ## 6. 关键经验和决策记录
 

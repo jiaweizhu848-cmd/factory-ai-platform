@@ -53,3 +53,68 @@ npm run dev
 前端默认通过 `/api/chat` 代理到 `http://localhost:8080/chat`。  
 后端默认调用 `http://localhost:8000/v1/chat/completions`。
 
+## Sprint 2 API base
+
+The browser chat endpoint remains available at:
+
+```text
+POST /chat
+```
+
+External applications should use the internal API endpoint:
+
+```text
+POST /api/v1/chat
+```
+
+Authentication uses a static bearer token from the backend environment:
+
+```bash
+export API_TOKENS="factory-dev-token"
+export API_LOG_PATH="logs/api_calls.jsonl"
+```
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer factory-dev-token" \
+  -d '{
+    "input": "Explain what this alarm means: EWI station cannot reach MOM.",
+    "caller": "line-dashboard",
+    "task_type": "chat",
+    "metadata": {
+      "line": "G77",
+      "station": "EWI"
+    }
+  }'
+```
+
+Successful response shape:
+
+```json
+{
+  "status": "ok",
+  "request_id": "generated-uuid",
+  "answer": "model answer",
+  "model": "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit",
+  "duration_ms": 1234
+}
+```
+
+Error response shape:
+
+```json
+{
+  "status": "error",
+  "request_id": "generated-uuid",
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid or missing bearer token"
+  }
+}
+```
+
+Each `/api/v1/chat` call writes one JSONL record to `API_LOG_PATH`.
+

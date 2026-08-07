@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.main import app
 
 
@@ -149,3 +150,111 @@ Final Answer:
 
     assert response.status_code == 200
     assert response.json() == {"message": {"role": "assistant", "content": "最终回答"}}
+
+
+def test_api_v1_chat_requires_bearer_token(monkeypatch):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/chat",
+        json={"input": "hello", "caller": "test-app"},
+    )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["request_id"]
+
+
+def test_api_v1_chat_returns_standard_422_for_invalid_body(monkeypatch):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/chat",
+        headers={"Authorization": "Bearer factory-token"},
+        json={"caller": "line-dashboard"},
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "validation_error"
+    assert body["request_id"]
+
+
+def test_api_v1_chat_returns_standard_response_and_logs(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+
+    async def fake_create_chat_completion(messages, temperature, max_tokens):
+        assert messages[0]["role"] == "system"
+        assert messages[1] == {"role": "user", "content": "hello"}
+        assert temperature == 0.3
+        assert max_tokens == 512
+        return {"role": "assistant", "content": "answer"}
+
+    monkeypatch.setattr(
+        "app.main.create_chat_completion",
+        fake_create_chat_completion,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/chat",
+        headers={"Authorization": "Bearer factory-token"},
+        json={
+            "input": "hello",
+            "caller": "line-dashboard",
+            "task_type": "chat",
+            "metadata": {"line": "G77"},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["answer"] == "answer"
+    assert body["model"] == settings.vllm_model
+    assert body["request_id"]
+    assert body["duration_ms"] >= 0
+
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"request_id":' in log_text
+    assert '"caller": "line-dashboard"' in log_text
+    assert '"task_type": "chat"' in log_text
+    assert '"status": "ok"' in log_text
+
+
+def test_api_v1_chat_returns_standard_502_and_logs(monkeypatch, tmp_path):
+    from app.services.llm_client import LlmClientError
+
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+
+    async def fake_create_chat_completion(messages, temperature, max_tokens):
+        raise LlmClientError("vLLM request failed")
+
+    monkeypatch.setattr(
+        "app.main.create_chat_completion",
+        fake_create_chat_completion,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/chat",
+        headers={"Authorization": "Bearer factory-token"},
+        json={"input": "hello", "caller": "line-dashboard"},
+    )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "llm_request_failed"
+    assert body["request_id"]
+
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"status": "error"' in log_text
+    assert '"error_code": "llm_request_failed"' in log_text

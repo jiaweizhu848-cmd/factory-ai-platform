@@ -1,7 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from datetime import UTC, datetime
+import secrets
+import time
+from uuid import uuid4
 
-from app.config import app_info
-from app.schemas import ChatRequest, ChatResponse
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+from app.config import app_info, settings
+from app.schemas import ApiChatRequest, ApiChatResponse, ChatRequest, ChatResponse
+from app.services.api_logger import write_api_call_log
 from app.services.llm_client import LlmClientError, create_chat_completion
 from app.services.response_cleaner import clean_assistant_content
 
@@ -12,6 +20,19 @@ DEFAULT_SYSTEM_PROMPT = (
 
 
 app = FastAPI(title=app_info.name, version=app_info.version)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    return _api_error(
+        status_code=422,
+        request_id=str(uuid4()),
+        code="validation_error",
+        message="Request validation failed",
+    )
 
 
 @app.get("/health")
@@ -34,7 +55,128 @@ async def chat(request: ChatRequest) -> ChatResponse:
     return ChatResponse(message=message)
 
 
+@app.post("/api/v1/chat", response_model=ApiChatResponse)
+async def api_v1_chat(
+    request: ApiChatRequest,
+    authorization: str | None = Header(default=None),
+):
+    request_id = str(uuid4())
+    started_at = time.perf_counter()
+
+    if not _is_authorized(authorization):
+        duration_ms = _duration_ms(started_at)
+        _write_api_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="unauthorized",
+            error_message="Invalid or missing bearer token",
+        )
+        return _api_error(
+            status_code=401,
+            request_id=request_id,
+            code="unauthorized",
+            message="Invalid or missing bearer token",
+        )
+
+    try:
+        message = await create_chat_completion(
+            messages=_prepare_messages([{"role": "user", "content": request.input}]),
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        )
+    except LlmClientError:
+        duration_ms = _duration_ms(started_at)
+        _write_api_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="llm_request_failed",
+            error_message="vLLM request failed",
+        )
+        return _api_error(
+            status_code=502,
+            request_id=request_id,
+            code="llm_request_failed",
+            message="vLLM request failed",
+        )
+
+    answer = clean_assistant_content(message["content"])
+    duration_ms = _duration_ms(started_at)
+    _write_api_log(
+        request_id=request_id,
+        request=request,
+        status="ok",
+        duration_ms=duration_ms,
+    )
+    return ApiChatResponse(
+        status="ok",
+        request_id=request_id,
+        answer=answer,
+        model=settings.vllm_model,
+        duration_ms=duration_ms,
+    )
+
+
 def _prepare_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
     if messages and messages[0]["role"] == "system":
         return messages
     return [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}, *messages]
+
+
+def _is_authorized(authorization: str | None) -> bool:
+    if not authorization or not authorization.startswith("Bearer "):
+        return False
+
+    supplied_token = authorization.removeprefix("Bearer ").strip()
+    configured_tokens = [
+        token.strip() for token in settings.api_tokens.split(",") if token.strip()
+    ]
+    return any(secrets.compare_digest(supplied_token, token) for token in configured_tokens)
+
+
+def _api_error(
+    *,
+    status_code: int,
+    request_id: str,
+    code: str,
+    message: str,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "error",
+            "request_id": request_id,
+            "error": {"code": code, "message": message},
+        },
+    )
+
+
+def _duration_ms(started_at: float) -> int:
+    return max(0, round((time.perf_counter() - started_at) * 1000))
+
+
+def _write_api_log(
+    *,
+    request_id: str,
+    request: ApiChatRequest,
+    status: str,
+    duration_ms: int,
+    error_code: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    entry = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "request_id": request_id,
+        "caller": request.caller,
+        "task_type": request.task_type,
+        "metadata": request.metadata,
+        "status": status,
+        "duration_ms": duration_ms,
+    }
+    if error_code:
+        entry["error_code"] = error_code
+        entry["error_message"] = error_message
+    write_api_call_log(settings.api_log_path, entry)

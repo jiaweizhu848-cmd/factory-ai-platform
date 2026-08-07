@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -26,3 +26,31 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     message: ChatMessage
+
+
+class ApiChatRequest(BaseModel):
+    input: str = Field(min_length=1)
+    caller: str = Field(min_length=1)
+    task_type: str = Field(default="chat", min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    temperature: float = Field(default=0.3, ge=0.0, le=2.0)
+    max_tokens: int = Field(default=512, ge=1, le=8192)
+
+
+class ApiChatResponse(BaseModel):
+    status: Literal["ok"]
+    request_id: str
+    answer: str
+    model: str
+    duration_ms: int
+
+
+class ApiErrorDetail(BaseModel):
+    code: str
+    message: str
+
+
+class ApiErrorResponse(BaseModel):
+    status: Literal["error"]
+    request_id: str
+    error: ApiErrorDetail
