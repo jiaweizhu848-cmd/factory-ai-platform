@@ -6,6 +6,8 @@ Factory AI Platform 是面向工厂场景的本地 AI 平台。当前基础 vLLM
 
 Sprint 1 设计文档：[docs/sprint1-chat-design.md](docs/sprint1-chat-design.md)
 
+Sprint 2 API 接入说明：[docs/api-integration-guide.md](docs/api-integration-guide.md)
+
 ## 当前功能
 
 - 本地 Qwen 多轮聊天。
