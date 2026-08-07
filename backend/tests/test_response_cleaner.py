@@ -301,3 +301,20 @@ def test_clean_assistant_content_does_not_fallback_to_full_process_only_response
 """
 
     assert clean_assistant_content(raw) == "抱歉，这次模型没有返回可展示的最终答案，请重新提问。"
+
+
+def test_clean_assistant_content_removes_leading_think_tag_without_closing_tag():
+    raw = "<think>\n\nHello! How can I assist you today?"
+
+    assert clean_assistant_content(raw) == "Hello! How can I assist you today?"
+
+
+def test_clean_assistant_content_removes_closed_think_block():
+    raw = """<think>
+I should answer directly.
+</think>
+
+Hello! How can I assist you today?
+"""
+
+    assert clean_assistant_content(raw) == "Hello! How can I assist you today?"

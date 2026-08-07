@@ -38,7 +38,7 @@ PROCESS_BOUNDARY_PATTERN = re.compile(
 
 
 def clean_assistant_content(content: str) -> str:
-    original = content.strip()
+    original = _strip_think_tags(content.strip())
     if not original:
         return content
 
@@ -109,6 +109,12 @@ def _find_final_marker_line(lines: list[str]) -> int | None:
             marker_line_index = index
 
     return marker_line_index
+
+
+def _strip_think_tags(text: str) -> str:
+    text = re.sub(r"<think\b[^>]*>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"^\s*</?think\b[^>]*>\s*", "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 def _collapse_blank_lines(text: str) -> str:
