@@ -42,6 +42,10 @@ def clean_assistant_content(content: str) -> str:
     if not original:
         return content
 
+    inline_output = _extract_inline_output(original)
+    if inline_output:
+        return inline_output
+
     marker_line_index = _find_final_marker_line(original.splitlines())
     if marker_line_index is not None:
         cleaned = _collapse_blank_lines(
@@ -115,6 +119,25 @@ def _strip_think_tags(text: str) -> str:
     text = re.sub(r"<think\b[^>]*>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"^\s*</?think\b[^>]*>\s*", "", text, flags=re.IGNORECASE)
     return text.strip()
+
+
+def _extract_inline_output(text: str) -> str | None:
+    match = re.search(
+        r"\b(?:final\s+)?output\s*:\s*(.+)$",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return None
+
+    output = match.group(1).strip()
+    output = re.split(
+        r"\s+(?:Check constraint|Check constraints|Check Against Constraints|Self-Correction/|Output matches)\b",
+        output,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    return _collapse_blank_lines(output) if output else None
 
 
 def _collapse_blank_lines(text: str) -> str:

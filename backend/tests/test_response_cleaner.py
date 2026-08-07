@@ -318,3 +318,13 @@ Hello! How can I assist you today?
 """
 
     assert clean_assistant_content(raw) == "Hello! How can I assist you today?"
+
+
+def test_clean_assistant_content_extracts_inline_output_after_process_text():
+    raw = (
+        'Wait, the prompt says "answer directly". "hello" is a greeting. '
+        'I will output: 你好！有什么我可以帮你的吗？ (Hello! How can I help you?) '
+        'Check constraint: "Only final answer" -> Satisfied.'
+    )
+
+    assert clean_assistant_content(raw) == "你好！有什么我可以帮你的吗？ (Hello! How can I help you?)"
