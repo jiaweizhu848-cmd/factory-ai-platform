@@ -185,6 +185,21 @@ def test_api_v1_chat_returns_standard_422_for_invalid_body(monkeypatch):
     assert body["request_id"]
 
 
+def test_api_v1_health_returns_api_status_without_auth():
+    client = TestClient(app)
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "status": "ok",
+        "service": "Factory AI Platform",
+        "model": settings.vllm_model,
+        "vllm_base_url": settings.vllm_base_url,
+    }
+    assert "token" not in response.text.lower()
+
+
 def test_api_v1_chat_returns_standard_response_and_logs(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "api_tokens", "factory-token")
     monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
@@ -226,6 +241,32 @@ def test_api_v1_chat_returns_standard_response_and_logs(monkeypatch, tmp_path):
     assert '"caller": "line-dashboard"' in log_text
     assert '"task_type": "chat"' in log_text
     assert '"status": "ok"' in log_text
+
+
+def test_api_v1_chat_logs_input_chars_without_input_text(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+
+    async def fake_create_chat_completion(messages, temperature, max_tokens):
+        return {"role": "assistant", "content": "answer"}
+
+    monkeypatch.setattr(
+        "app.main.create_chat_completion",
+        fake_create_chat_completion,
+    )
+
+    client = TestClient(app)
+    sensitive_input = "secret machine message"
+    response = client.post(
+        "/api/v1/chat",
+        headers={"Authorization": "Bearer factory-token"},
+        json={"input": sensitive_input, "caller": "line-dashboard"},
+    )
+
+    assert response.status_code == 200
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"input_chars": 22' in log_text
+    assert sensitive_input not in log_text
 
 
 def test_api_v1_chat_returns_standard_502_and_logs(monkeypatch, tmp_path):

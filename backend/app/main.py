@@ -40,6 +40,16 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/v1/health")
+def api_v1_health() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": app_info.name,
+        "model": settings.vllm_model,
+        "vllm_base_url": settings.vllm_base_url,
+    }
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     try:
@@ -173,6 +183,7 @@ def _write_api_log(
         "caller": request.caller,
         "task_type": request.task_type,
         "metadata": request.metadata,
+        "input_chars": len(request.input),
         "status": status,
         "duration_ms": duration_ms,
     }

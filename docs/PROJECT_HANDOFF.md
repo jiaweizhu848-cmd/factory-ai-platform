@@ -180,6 +180,8 @@ Sprint 2 第一批能力已落地：
 - 支持标准响应字段：`status`、`request_id`、`answer`、`model`、`duration_ms`。
 - 支持标准错误响应，当前覆盖 401、422、502。
 - 支持 JSONL 调用日志，配置项为 `API_LOG_PATH`，默认 `logs/api_calls.jsonl`。
+- 新增 `GET /api/v1/health`，便于其他系统检查 Factory AI API 状态。
+- JSONL 调用日志已记录 `input_chars`，但不记录完整输入文本，降低敏感工厂信息落盘风险。
 - 当前网页 `/chat` 保持可用，不受外部 API token 影响。
 
 ## 6. 关键经验和决策记录

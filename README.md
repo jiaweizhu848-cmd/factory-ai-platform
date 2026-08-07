@@ -67,6 +67,12 @@ External applications should use the internal API endpoint:
 POST /api/v1/chat
 ```
 
+API health check:
+
+```text
+GET /api/v1/health
+```
+
 Authentication uses a static bearer token from the backend environment:
 
 ```bash
@@ -116,5 +122,5 @@ Error response shape:
 }
 ```
 
-Each `/api/v1/chat` call writes one JSONL record to `API_LOG_PATH`.
+Each `/api/v1/chat` call writes one JSONL record to `API_LOG_PATH`. The log records metadata, status, duration, and `input_chars`; it does not record the full input text.
 
