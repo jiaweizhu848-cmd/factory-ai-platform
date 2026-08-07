@@ -15,7 +15,7 @@ PROCESS_HEADING_PATTERN = re.compile(
 )
 NUMBERED_PROCESS_HEADING_PATTERN = re.compile(
     r"^\s*(?:\d+\.\s*)?"
-    r"(?:Check Constraints|Final Output Generation|Self-Correction/Refinement during thought|Output Generation)"
+    r"(?:Check(?: Against)? Constraints|Final Output Generation|Self-Correction/(?:Refinement|Verification) during thought|Output Generation)"
     r"\b.*$",
     re.IGNORECASE,
 )

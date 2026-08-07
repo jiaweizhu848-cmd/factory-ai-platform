@@ -191,3 +191,25 @@ I am Factory AI. I can answer questions.
         clean_assistant_content(raw)
         == "I am Factory AI. I can answer questions and help with writing, coding, data analysis, reasoning, translation, and creative generation."
     )
+
+
+def test_clean_assistant_content_truncates_check_against_constraints_after_answer():
+    raw = """I am Factory AI, an intelligent assistant. I can help answer questions, draft text, code, analyze data, and provide practical support.
+
+4. Check Against Constraints:
+
+* Direct answer? Yes.
+* No thinking process/reasoning? Yes.
+* In Chinese? Yes.
+
+5. Final Output Generation: (Matches the draft)
+
+"I am Factory AI, an intelligent assistant."
+
+(Self-Correction/Verification during thought: The prompt says final answer only.)
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "I am Factory AI, an intelligent assistant. I can help answer questions, draft text, code, analyze data, and provide practical support."
+    )
