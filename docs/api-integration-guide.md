@@ -53,6 +53,14 @@ POST /api/v1/chat
 
 需要 Bearer token。适合其他系统把一段任务输入交给 Factory AI，并拿到一次性的最终回答。
 
+### 2.3 调用统计
+
+```text
+GET /api/v1/logs/summary
+```
+
+需要 Bearer token。用于快速查看当前 JSONL 日志中的调用总量、成功/失败数量、平均耗时、调用方分布和错误码分布。
+
 ## 3. 认证
 
 后端通过环境变量配置可用 token：
@@ -257,6 +265,40 @@ export API_LOG_PATH="logs/api_calls.jsonl"
 
 ```bash
 tail -n 5 logs/api_calls.jsonl
+```
+
+查看调用统计：
+
+```bash
+curl http://localhost:8080/api/v1/logs/summary \
+  -H "Authorization: Bearer factory-dev-token"
+```
+
+响应示例：
+
+```json
+{
+  "status": "ok",
+  "total_calls": 3,
+  "ok_calls": 2,
+  "error_calls": 1,
+  "avg_duration_ms": 117,
+  "by_caller": {
+    "line-dashboard": {
+      "total": 2,
+      "ok": 1,
+      "error": 1
+    },
+    "ewi-tool": {
+      "total": 1,
+      "ok": 1,
+      "error": 0
+    }
+  },
+  "by_error_code": {
+    "llm_request_failed": 1
+  }
+}
 ```
 
 ## 9. 接入建议

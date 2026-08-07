@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import app
+from app.services.api_logger import write_api_call_log
 
 
 def test_chat_returns_assistant_message(monkeypatch):
@@ -183,6 +184,87 @@ def test_api_v1_chat_returns_standard_422_for_invalid_body(monkeypatch):
     assert body["status"] == "error"
     assert body["error"]["code"] == "validation_error"
     assert body["request_id"]
+
+
+def test_api_v1_logs_summary_requires_bearer_token(monkeypatch):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+
+    client = TestClient(app)
+    response = client.get("/api/v1/logs/summary")
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["request_id"]
+
+
+def test_api_v1_logs_summary_returns_call_stats(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+
+    write_api_call_log(
+        settings.api_log_path,
+        {
+            "timestamp": "2026-08-07T00:00:00+00:00",
+            "request_id": "one",
+            "caller": "line-dashboard",
+            "task_type": "chat",
+            "metadata": {"line": "G77"},
+            "input_chars": 10,
+            "status": "ok",
+            "duration_ms": 100,
+        },
+    )
+    write_api_call_log(
+        settings.api_log_path,
+        {
+            "timestamp": "2026-08-07T00:00:01+00:00",
+            "request_id": "two",
+            "caller": "line-dashboard",
+            "task_type": "chat",
+            "metadata": {"line": "G77"},
+            "input_chars": 20,
+            "status": "error",
+            "duration_ms": 50,
+            "error_code": "llm_request_failed",
+            "error_message": "vLLM request failed",
+        },
+    )
+    write_api_call_log(
+        settings.api_log_path,
+        {
+            "timestamp": "2026-08-07T00:00:02+00:00",
+            "request_id": "three",
+            "caller": "ewi-tool",
+            "task_type": "chat",
+            "metadata": {"line": "G77"},
+            "input_chars": 30,
+            "status": "ok",
+            "duration_ms": 200,
+        },
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/logs/summary",
+        headers={"Authorization": "Bearer factory-token"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "status": "ok",
+        "total_calls": 3,
+        "ok_calls": 2,
+        "error_calls": 1,
+        "avg_duration_ms": 117,
+        "by_caller": {
+            "line-dashboard": {"total": 2, "ok": 1, "error": 1},
+            "ewi-tool": {"total": 1, "ok": 1, "error": 0},
+        },
+        "by_error_code": {"llm_request_failed": 1},
+    }
 
 
 def test_api_v1_health_returns_api_status_without_auth():

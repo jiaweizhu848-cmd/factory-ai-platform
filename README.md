@@ -75,6 +75,12 @@ API health check:
 GET /api/v1/health
 ```
 
+API call summary:
+
+```text
+GET /api/v1/logs/summary
+```
+
 Authentication uses a static bearer token from the backend environment:
 
 ```bash

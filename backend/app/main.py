@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import app_info, settings
 from app.schemas import ApiChatRequest, ApiChatResponse, ChatRequest, ChatResponse
-from app.services.api_logger import write_api_call_log
+from app.services.api_logger import summarize_api_call_logs, write_api_call_log
 from app.services.llm_client import LlmClientError, create_chat_completion
 from app.services.rate_limiter import api_rate_limiter
 from app.services.response_cleaner import clean_assistant_content
@@ -49,6 +49,20 @@ def api_v1_health() -> dict[str, str]:
         "model": settings.vllm_model,
         "vllm_base_url": settings.vllm_base_url,
     }
+
+
+@app.get("/api/v1/logs/summary")
+def api_v1_logs_summary(authorization: str | None = Header(default=None)):
+    request_id = str(uuid4())
+    if not _is_authorized(authorization):
+        return _api_error(
+            status_code=401,
+            request_id=request_id,
+            code="unauthorized",
+            message="Invalid or missing bearer token",
+        )
+
+    return summarize_api_call_logs(settings.api_log_path)
 
 
 @app.post("/chat", response_model=ChatResponse)
