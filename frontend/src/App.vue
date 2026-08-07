@@ -31,6 +31,10 @@ function clearConversation() {
   error.value = "";
 }
 
+function buildRequestMessages(content) {
+  return [{ role: "user", content }];
+}
+
 async function scrollToBottom() {
   await nextTick();
   if (messageList.value) {
@@ -52,10 +56,7 @@ async function submitMessage() {
   await scrollToBottom();
 
   try {
-    const requestMessages = messages.value.filter(
-      (message) => message.role !== "system" && !message.local,
-    );
-    const result = await sendChat(requestMessages);
+    const result = await sendChat(buildRequestMessages(content));
     messages.value.push(result.message);
   } catch (err) {
     messages.value.splice(userMessageIndex, 1);
