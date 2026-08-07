@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, ref } from "vue";
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { sendChat } from "./api/chat";
 
@@ -21,7 +22,7 @@ const canClear = computed(
 );
 
 function renderMarkdown(content) {
-  return marked.parse(content || "");
+  return DOMPurify.sanitize(marked.parse(content || ""));
 }
 
 function clearConversation() {
