@@ -19,6 +19,12 @@ NUMBERED_PROCESS_HEADING_PATTERN = re.compile(
     r"\b.*$",
     re.IGNORECASE,
 )
+TRAILING_PROCESS_BULLET_PATTERN = re.compile(
+    r"^\s*(?:[-*]\s*)?"
+    r"(?:Meets all constraints|Output matches|Proceed|Done|Self-Correction/(?:Refinement|Verification) during thought|Output Generation)"
+    r"\b.*$",
+    re.IGNORECASE,
+)
 
 
 def clean_assistant_content(content: str) -> str:
@@ -36,6 +42,11 @@ def clean_assistant_content(content: str) -> str:
     lines = []
     skipping_process_block = False
     for line in original.splitlines():
+        if TRAILING_PROCESS_BULLET_PATTERN.match(line) and any(
+            existing_line.strip() for existing_line in lines
+        ):
+            break
+
         if NUMBERED_PROCESS_HEADING_PATTERN.match(line):
             if any(existing_line.strip() for existing_line in lines):
                 break
