@@ -22,6 +22,7 @@ STOP_SEQUENCES = [
     "\n* Proceed",
     "\n* Done",
     "\n4. Check",
+    "\n4. **Check",
     "\n5. Final",
     "\n**4. Check",
     "\n**5. Final",

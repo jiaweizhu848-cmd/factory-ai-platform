@@ -270,3 +270,17 @@ Please add the isolated IP segment to the firewall allowlist.
         clean_assistant_content(raw)
         == "Hi Michael,\n\nPlease add the isolated IP segment to the firewall allowlist."
     )
+
+
+def test_clean_assistant_content_truncates_partial_accuracy_heading_after_stop():
+    raw = """Hi Michael,
+
+Please add the isolated IP segment to the firewall allowlist.
+
+4. **Check Accuracy &
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "Hi Michael,\n\nPlease add the isolated IP segment to the firewall allowlist."
+    )
