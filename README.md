@@ -6,6 +6,14 @@ Factory AI Platform 是面向工厂场景的本地 AI 平台。当前基础 vLLM
 
 Sprint 1 设计文档：[docs/sprint1-chat-design.md](docs/sprint1-chat-design.md)
 
+## 当前功能
+
+- 本地 Qwen 多轮聊天。
+- 后端自动加入默认 system prompt，减少过程性输出。
+- 后端会清理常见 `Thinking Process` / `Final Answer` 包装文本。
+- 前端支持 Markdown 回答展示。
+- 前端支持清空当前会话。
+
 ## 运行顺序
 
 ### 1. 启动 vLLM
