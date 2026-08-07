@@ -4,9 +4,11 @@ import re
 FINAL_MARKER_PATTERN = re.compile(r"^\s*(Final Answer|Final|Answer)\s*:?\s*$", re.IGNORECASE)
 PROCESS_HEADING_PATTERN = re.compile(
     r"^\s*(?:"
+    r"Here(?:'s| is) a thinking process|"
     r"Thinking Process|"
     r"Internal Monologue|"
     r"Drafting the response|"
+    r"Formulate Response \(Internal Draft\)|"
     r"Refining the response"
     r")\s*:?\s*$",
     re.IGNORECASE,

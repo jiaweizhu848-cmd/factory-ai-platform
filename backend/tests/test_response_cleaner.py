@@ -145,3 +145,28 @@ Restart the backend service.
 """
 
     assert clean_assistant_content(raw) == "Restart the backend service."
+
+
+def test_clean_assistant_content_handles_here_is_a_thinking_process_wrapper():
+    raw = """Here's a thinking process:
+
+1. Analyze User Input:
+
+- User asks: 你是谁，你能帮我做什么？
+- Language: Chinese
+
+2. Check Constraints:
+
+- System prompt asks for final answer only.
+
+3. Formulate Response (Internal Draft):
+
+- Identity: 我是 Factory AI。
+
+我是 Factory AI，可以帮助你进行工厂场景下的信息查询、数据分析、文档整理和问题排查。
+"""
+
+    assert (
+        clean_assistant_content(raw)
+        == "我是 Factory AI，可以帮助你进行工厂场景下的信息查询、数据分析、文档整理和问题排查。"
+    )
