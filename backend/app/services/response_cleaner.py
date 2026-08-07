@@ -76,6 +76,7 @@ def clean_assistant_content(content: str) -> str:
         lines.append(line)
 
     cleaned = _collapse_blank_lines("\n".join(lines).strip())
+    cleaned = _clean_final_answer_text(cleaned)
     return _fallback_if_empty(cleaned, original)
 
 
@@ -118,6 +119,7 @@ def _find_final_marker_line(lines: list[str]) -> int | None:
 def _strip_think_tags(text: str) -> str:
     text = re.sub(r"<think\b[^>]*>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"^\s*</?think\b[^>]*>\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"</?think\b[^>]*>", "", text, flags=re.IGNORECASE)
     return text.strip()
 
 
@@ -137,7 +139,19 @@ def _extract_inline_output(text: str) -> str | None:
         maxsplit=1,
         flags=re.IGNORECASE,
     )[0].strip()
-    return _collapse_blank_lines(output) if output else None
+    return _clean_final_answer_text(_collapse_blank_lines(output)) if output else None
+
+
+def _clean_final_answer_text(text: str) -> str:
+    text = re.sub(r"</?think\b[^>]*>", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"^\s*(?:\*\*|\*)\s*", "", text).strip()
+    text = re.split(
+        r"\s+(?:This fits perfectly|No extra fluff|Directly answers|Matches language context|Follows all constraints)\b",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    return text
 
 
 def _collapse_blank_lines(text: str) -> str:

@@ -328,3 +328,13 @@ def test_clean_assistant_content_extracts_inline_output_after_process_text():
     )
 
     assert clean_assistant_content(raw) == "你好！有什么我可以帮你的吗？ (Hello! How can I help you?)"
+
+
+def test_clean_assistant_content_strips_trailing_evaluation_and_closing_think_tag():
+    raw = (
+        "** 你好！有什么我可以帮你的吗？ (Hello! How can I help you?) "
+        "This fits perfectly. No extra fluff. Directly answers. "
+        "Matches language context. Follows all constraints.\n</think>\n\n你好！有什么我可以帮你的吗？"
+    )
+
+    assert clean_assistant_content(raw) == "你好！有什么我可以帮你的吗？ (Hello! How can I help you?)"
