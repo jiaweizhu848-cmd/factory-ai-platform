@@ -87,7 +87,7 @@ Vision analysis endpoint:
 POST /api/v1/vision/analyze
 ```
 
-`/api/v1/vision/analyze` is reserved for image analysis. It currently returns `vision_model_not_configured` unless a vision-capable vLLM model is configured.
+`/api/v1/vision/analyze` accepts image data URLs. Set `VISION_ENABLED=true` only when vLLM is serving a vision-capable model; otherwise it returns `vision_model_not_configured`.
 
 Authentication uses a static bearer token from the backend environment:
 

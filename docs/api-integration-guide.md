@@ -67,7 +67,7 @@ GET /api/v1/logs/summary
 POST /api/v1/vision/analyze
 ```
 
-需要 Bearer token。用于接收图片和提示词。当前默认返回 `vision_model_not_configured`，因为现有 vLLM 模型按纯文本模型运行；后续切换到 Qwen-VL 类模型后，再把该接口接入真正的图片理解。
+需要 Bearer token。用于接收图片和提示词。默认 `VISION_ENABLED=false` 时返回 `vision_model_not_configured`；当后端配置 `VISION_ENABLED=true` 且 vLLM 已启动支持图片输入的 VL 模型时，该接口会按 OpenAI vision message 格式把 `input` 和 `image` 一起发送给 vLLM。
 
 ## 3. 认证
 
@@ -308,6 +308,15 @@ Invoke-RestMethod `
   }
 }
 ```
+
+启用真实图片分析需要后端环境变量：
+
+```bash
+export VISION_ENABLED=true
+export VLLM_MODEL="<支持图片输入的 Qwen-VL 模型 ID>"
+```
+
+注意：只把 `VISION_ENABLED` 改成 `true` 不够。Ubuntu 上 vLLM 当前运行的模型必须支持 OpenAI-compatible vision 输入；如果仍然运行纯文本模型，接口会调用 vLLM，但大概率返回 502 / `llm_request_failed`。
 
 ## 9. 调用日志
 

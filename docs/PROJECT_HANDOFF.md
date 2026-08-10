@@ -185,7 +185,7 @@ Sprint 2 第一批能力已落地：
 - JSONL 调用日志已记录 `input_chars`，但不记录完整输入文本，降低敏感工厂信息落盘风险。
 - 新增内存级按 token 限流，默认 60 秒 60 次；超限返回 429 / `rate_limited`。
 - 新增网页 `API 管理` 页签，支持管理员登录、查看 API 状态/调用统计、生成 curl 和 PowerShell 接入示例。
-- 新增 `POST /api/v1/vision/analyze` 占位接口，用于图片分析；当前默认返回 `vision_model_not_configured`，避免调用方误以为 `/api/v1/chat` 已经识别图片。
+- 新增 `POST /api/v1/vision/analyze`，用于图片分析；默认 `VISION_ENABLED=false` 返回 `vision_model_not_configured`，启用后按 OpenAI vision message 格式调用 vLLM，前提是 Ubuntu 上已运行支持图片输入的 VL 模型。
 - 新增内部系统接入说明：[docs/api-integration-guide.md](api-integration-guide.md)。
 - 当前网页 `/chat` 保持可用，不受外部 API token 影响。
 

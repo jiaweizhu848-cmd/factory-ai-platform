@@ -544,3 +544,50 @@ def test_api_v1_vision_analyze_returns_clear_error_when_disabled(monkeypatch, tm
     assert '"image_chars": 26' in log_text
     assert '"error_code": "vision_model_not_configured"' in log_text
     assert "data:image/jpeg;base64,abc" not in log_text
+
+
+def test_api_v1_vision_analyze_returns_standard_response_when_enabled(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+    monkeypatch.setattr(settings, "vision_enabled", True)
+
+    async def fake_create_vision_completion(prompt, image_url, temperature, max_tokens):
+        assert prompt == "Analyze this PCB"
+        assert image_url == "data:image/jpeg;base64,abc"
+        assert temperature == 0.2
+        assert max_tokens == 512
+        return {"role": "assistant", "content": "vision answer"}
+
+    monkeypatch.setattr(
+        "app.main.create_vision_completion",
+        fake_create_vision_completion,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/vision/analyze",
+        headers={"Authorization": "Bearer factory-token"},
+        json={
+            "input": "Analyze this PCB",
+            "caller": "automate",
+            "image": "data:image/jpeg;base64,abc",
+            "metadata": {"image_name": "test.jpg"},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["answer"] == "vision answer"
+    assert body["model"] == settings.vllm_model
+    assert body["request_id"]
+    assert body["duration_ms"] >= 0
+
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"status": "ok"' in log_text
+    assert '"task_type": "vision"' in log_text
+    assert '"image_chars": 26' in log_text
+    assert "data:image/jpeg;base64,abc" not in log_text

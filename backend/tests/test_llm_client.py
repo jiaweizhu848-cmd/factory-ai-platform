@@ -2,7 +2,11 @@ import pytest
 import httpx
 
 from app.services import llm_client
-from app.services.llm_client import LlmClientError, create_chat_completion
+from app.services.llm_client import (
+    LlmClientError,
+    create_chat_completion,
+    create_vision_completion,
+)
 
 
 class TransportAsyncClient(httpx.AsyncClient):
@@ -42,6 +46,30 @@ async def test_create_chat_completion_parses_vllm_response(mock_vllm):
         temperature=0.3,
         max_tokens=512,
     ) == {"role": "assistant", "content": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_create_vision_completion_sends_openai_vision_message(mock_vllm):
+    def handler(request):
+        assert request.url == "http://localhost:8000/v1/chat/completions"
+        payload = request.read().decode("utf-8")
+        assert '"type":"text"' in payload
+        assert '"text":"Analyze this PCB"' in payload
+        assert '"type":"image_url"' in payload
+        assert '"url":"data:image/jpeg;base64,abc"' in payload
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"role": "assistant", "content": "vision ok"}}]},
+        )
+
+    mock_vllm(handler)
+
+    assert await create_vision_completion(
+        prompt="Analyze this PCB",
+        image_url="data:image/jpeg;base64,abc",
+        temperature=0.2,
+        max_tokens=512,
+    ) == {"role": "assistant", "content": "vision ok"}
 
 
 @pytest.mark.asyncio

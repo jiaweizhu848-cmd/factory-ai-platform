@@ -18,7 +18,11 @@ from app.schemas import (
     VisionAnalyzeRequest,
 )
 from app.services.api_logger import summarize_api_call_logs, write_api_call_log
-from app.services.llm_client import LlmClientError, create_chat_completion
+from app.services.llm_client import (
+    LlmClientError,
+    create_chat_completion,
+    create_vision_completion,
+)
 from app.services.rate_limiter import api_rate_limiter
 from app.services.response_cleaner import clean_assistant_content
 
@@ -247,11 +251,44 @@ async def api_v1_vision_analyze(
             message="Current vLLM model does not support image input",
         )
 
-    return _api_error(
-        status_code=501,
+    try:
+        message = await create_vision_completion(
+            prompt=request.input,
+            image_url=request.image,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        )
+    except LlmClientError:
+        duration_ms = _duration_ms(started_at)
+        _write_vision_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="llm_request_failed",
+            error_message="vLLM request failed",
+        )
+        return _api_error(
+            status_code=502,
+            request_id=request_id,
+            code="llm_request_failed",
+            message="vLLM request failed",
+        )
+
+    answer = clean_assistant_content(message["content"])
+    duration_ms = _duration_ms(started_at)
+    _write_vision_log(
         request_id=request_id,
-        code="vision_model_not_implemented",
-        message="Vision model support is not implemented yet",
+        request=request,
+        status="ok",
+        duration_ms=duration_ms,
+    )
+    return ApiChatResponse(
+        status="ok",
+        request_id=request_id,
+        answer=answer,
+        model=settings.vllm_model,
+        duration_ms=duration_ms,
     )
 
 

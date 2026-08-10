@@ -45,3 +45,26 @@ async def create_chat_completion(
         return {"role": role, "content": content}
     except (KeyError, IndexError, TypeError, ValueError) as exc:
         raise LlmClientError("vLLM response format is invalid") from exc
+
+
+async def create_vision_completion(
+    *,
+    prompt: str,
+    image_url: str,
+    temperature: float,
+    max_tokens: int,
+) -> dict[str, str]:
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": image_url}},
+            ],
+        }
+    ]
+    return await create_chat_completion(
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
