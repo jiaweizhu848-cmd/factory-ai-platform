@@ -145,6 +145,7 @@ def _extract_inline_output(text: str) -> str | None:
 def _clean_final_answer_text(text: str) -> str:
     text = re.sub(r"</?think\b[^>]*>", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"^\s*(?:\*\*|\*)\s*", "", text).strip()
+    text = _strip_leading_chinese_process_sentence(text)
     text = re.split(
         r"\s+(?:This fits perfectly|No extra fluff|Directly answers|Matches language context|Follows all constraints)\b",
         text,
@@ -152,6 +153,17 @@ def _clean_final_answer_text(text: str) -> str:
         flags=re.IGNORECASE,
     )[0].strip()
     return text
+
+
+def _strip_leading_chinese_process_sentence(text: str) -> str:
+    if not re.match(r"^\s*(?:用户希望|用户想|我需要|我将|我会)", text):
+        return text
+
+    match = re.search(r"\n\s*(?:\*\*)?\s*\d+[\.、]", text)
+    if not match:
+        return text
+
+    return text[match.start() :].lstrip()
 
 
 def _collapse_blank_lines(text: str) -> str:

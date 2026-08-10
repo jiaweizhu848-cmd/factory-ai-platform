@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref } from "vue";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { sendChat } from "./api/chat";
+import { sendChat, sendVision } from "./api/chat";
 import {
   adminLogin,
   clearAdminToken,
@@ -25,6 +25,9 @@ const loading = ref(false);
 const error = ref("");
 const messages = ref([{ ...welcomeMessage }]);
 const messageList = ref(null);
+const attachedFile = ref(null);
+const attachedFileDataUrl = ref("");
+const draggingOverComposer = ref(false);
 const adminPassword = ref("");
 const adminToken = ref(getStoredAdminToken());
 const adminLoading = ref(false);
@@ -44,8 +47,24 @@ const copiedTarget = ref("");
 
 const isAdminLoggedIn = computed(() => Boolean(adminToken.value));
 const canClear = computed(
-  () => messages.value.length > 1 || input.value.trim() || error.value,
+  () =>
+    messages.value.length > 1 ||
+    input.value.trim() ||
+    error.value ||
+    attachedFile.value,
 );
+const attachedFileKind = computed(() => {
+  if (!attachedFile.value) {
+    return "";
+  }
+  if (attachedFile.value.type.startsWith("image/")) {
+    return "image";
+  }
+  if (attachedFile.value.type.startsWith("video/")) {
+    return "video";
+  }
+  return "unsupported";
+});
 
 const curlExample = computed(() => {
   const payload = buildExamplePayload();
@@ -103,6 +122,7 @@ function clearConversation() {
   messages.value = [{ ...welcomeMessage }];
   input.value = "";
   error.value = "";
+  clearAttachment();
 }
 
 function buildRequestMessages(content) {
@@ -118,20 +138,44 @@ async function scrollToBottom() {
 
 async function submitMessage() {
   const content = input.value.trim();
-  if (!content || loading.value) {
+  if ((!content && !attachedFile.value) || loading.value) {
+    return;
+  }
+
+  if (attachedFileKind.value === "video") {
+    error.value = "已接收视频文件，但当前版本还不支持视频分析。下一步可做视频抽帧后再分析。";
+    return;
+  }
+
+  if (attachedFileKind.value === "unsupported") {
+    error.value = "当前只支持拖入图片或视频文件。";
     return;
   }
 
   error.value = "";
   input.value = "";
-  messages.value.push({ role: "user", content });
+  const displayContent = attachedFile.value
+    ? `${content || "请分析这张图片"}\n\n[附件] ${attachedFile.value.name}`
+    : content;
+  messages.value.push({ role: "user", content: displayContent });
   const userMessageIndex = messages.value.length - 1;
   loading.value = true;
   await scrollToBottom();
 
   try {
-    const result = await sendChat(buildRequestMessages(content));
+    const result =
+      attachedFileKind.value === "image"
+        ? await sendVision({
+            input: content || "请分析这张图片，输出关键对象、文字、异常点和简要结论。",
+            image: attachedFileDataUrl.value,
+            metadata: {
+              fileName: attachedFile.value.name,
+              fileType: attachedFile.value.type,
+            },
+          })
+        : await sendChat(buildRequestMessages(content));
     messages.value.push(result.message);
+    clearAttachment();
   } catch (err) {
     messages.value.splice(userMessageIndex, 1);
     input.value = content;
@@ -140,6 +184,65 @@ async function submitMessage() {
     loading.value = false;
     await scrollToBottom();
   }
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  draggingOverComposer.value = true;
+}
+
+function handleDragLeave(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    draggingOverComposer.value = false;
+  }
+}
+
+async function handleDrop(event) {
+  event.preventDefault();
+  draggingOverComposer.value = false;
+  const file = event.dataTransfer?.files?.[0];
+  if (file) {
+    await attachFile(file);
+  }
+}
+
+async function handleFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (file) {
+    await attachFile(file);
+  }
+  event.target.value = "";
+}
+
+async function attachFile(file) {
+  error.value = "";
+  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    error.value = "当前只支持拖入图片或视频文件。";
+    return;
+  }
+
+  attachedFile.value = file;
+  attachedFileDataUrl.value = file.type.startsWith("image/")
+    ? await readFileAsDataUrl(file)
+    : "";
+
+  if (file.type.startsWith("video/")) {
+    error.value = "已接收视频文件，但当前版本暂不支持视频分析。";
+  }
+}
+
+function clearAttachment() {
+  attachedFile.value = null;
+  attachedFileDataUrl.value = "";
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("读取文件失败"));
+    reader.readAsDataURL(file);
+  });
 }
 
 async function submitAdminLogin() {
@@ -288,14 +391,39 @@ function escapePowerShellString(value) {
 
       <p v-if="error" class="error">{{ error }}</p>
 
-      <form class="composer" @submit.prevent="submitMessage">
-        <textarea
-          v-model="input"
-          placeholder="输入问题，按 Ctrl+Enter 发送"
-          :disabled="loading"
-          @keydown.ctrl.enter.prevent="submitMessage"
-        />
-        <button type="submit" :disabled="loading || !input.trim()">
+      <form
+        class="composer"
+        :class="{ 'drag-over': draggingOverComposer }"
+        @submit.prevent="submitMessage"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+      >
+        <div class="composer-input">
+          <textarea
+            v-model="input"
+            placeholder="输入问题，或将图片/视频拖入这里。按 Ctrl+Enter 发送"
+            :disabled="loading"
+            @keydown.ctrl.enter.prevent="submitMessage"
+          />
+          <div class="attachment-row">
+            <span v-if="attachedFile" class="attachment-pill">
+              {{ attachedFileKind === "image" ? "图片" : attachedFileKind === "video" ? "视频" : "文件" }}:
+              {{ attachedFile.name }}
+              <button type="button" @click="clearAttachment">移除</button>
+            </span>
+            <label class="attach-button">
+              选择文件
+              <input
+                type="file"
+                accept="image/*,video/*"
+                :disabled="loading"
+                @change="handleFileSelect"
+              />
+            </label>
+          </div>
+        </div>
+        <button type="submit" :disabled="loading || (!input.trim() && !attachedFile)">
           {{ loading ? "发送中" : "发送" }}
         </button>
       </form>

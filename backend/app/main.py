@@ -30,6 +30,11 @@ DEFAULT_SYSTEM_PROMPT = (
     "你是 Factory AI。请直接回答用户问题，只输出最终答案，"
     "不要输出 Thinking Process、推理过程、草稿、内部分析或自我检查过程。"
 )
+VISION_SYSTEM_PROMPT = (
+    "你是 Factory AI 的工业视觉助手。请直接输出可执行的最终答案，"
+    "不要输出推理过程、内心分析、自我检查或草稿。"
+    "如无法准确计数，请给出估计数量和不确定原因。"
+)
 
 
 app = FastAPI(title=app_info.name, version=app_info.version)
@@ -257,6 +262,7 @@ async def api_v1_vision_analyze(
             image_url=request.image,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
+            system_prompt=VISION_SYSTEM_PROMPT,
         )
     except LlmClientError:
         duration_ms = _duration_ms(started_at)

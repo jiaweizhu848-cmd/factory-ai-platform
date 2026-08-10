@@ -15,6 +15,7 @@ Sprint 2 API 接入说明：[docs/api-integration-guide.md](docs/api-integration
 - 后端会清理常见 `Thinking Process` / `Final Answer` 包装文本。
 - 前端支持 Markdown 回答展示。
 - 前端支持清空当前会话。
+- 前端聊天框支持拖入图片并调用视觉接口；视频文件当前只接收并提示暂不支持分析。
 
 ## 运行顺序
 
@@ -87,7 +88,7 @@ Vision analysis endpoint:
 POST /api/v1/vision/analyze
 ```
 
-`/api/v1/vision/analyze` accepts image data URLs. Set `VISION_ENABLED=true` only when vLLM is serving a vision-capable model; otherwise it returns `vision_model_not_configured`.
+`/api/v1/vision/analyze` accepts image data URLs. Set `VISION_ENABLED=true` only when vLLM is serving a vision-capable model; otherwise it returns `vision_model_not_configured`. The browser chat composer can send dropped image files to this endpoint.
 
 Authentication uses a static bearer token from the backend environment:
 

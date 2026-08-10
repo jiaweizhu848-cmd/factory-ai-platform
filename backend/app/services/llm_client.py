@@ -53,6 +53,7 @@ async def create_vision_completion(
     image_url: str,
     temperature: float,
     max_tokens: int,
+    system_prompt: str | None = None,
 ) -> dict[str, str]:
     messages = [
         {
@@ -63,6 +64,8 @@ async def create_vision_completion(
             ],
         }
     ]
+    if system_prompt:
+        messages.insert(0, {"role": "system", "content": system_prompt})
     return await create_chat_completion(
         messages=messages,
         temperature=temperature,

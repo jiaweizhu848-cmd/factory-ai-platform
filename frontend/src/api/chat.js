@@ -26,7 +26,52 @@ export async function sendChat(messages) {
   return payload;
 }
 
+export async function sendVision({ input, image, metadata }) {
+  let response;
+
+  try {
+    response = await fetch("/api/api/v1/vision/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${metadata.apiToken || "factory-dev-token"}`,
+      },
+      body: JSON.stringify({
+        input,
+        caller: "browser-chat",
+        image,
+        metadata: {
+          source: "browser-chat",
+          file_name: metadata.fileName,
+          file_type: metadata.fileType,
+        },
+        temperature: 0.2,
+        max_tokens: 1024,
+      }),
+    });
+  } catch {
+    throw new Error("网络连接失败，请检查后端服务");
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(payload));
+  }
+
+  return {
+    message: {
+      role: "assistant",
+      content: payload.answer,
+    },
+  };
+}
+
 function getErrorMessage(payload) {
+  if (payload?.error?.message) {
+    return payload.error.message;
+  }
+
   const detail = payload?.detail;
 
   if (typeof detail === "string" && detail.trim()) {

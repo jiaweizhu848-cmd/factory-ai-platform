@@ -256,6 +256,18 @@ textarea {
   padding-top: 2px;
 }
 
+.composer.drag-over {
+  border-radius: 8px;
+  outline: 2px dashed #2f7d69;
+  outline-offset: 4px;
+}
+
+.composer-input {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .composer textarea {
   min-height: 88px;
   max-height: 180px;
@@ -300,6 +312,56 @@ textarea {
   color: #6e7a82;
   background: #dce2e6;
   cursor: not-allowed;
+}
+
+.attachment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.attachment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid #b8c7c1;
+  border-radius: 8px;
+  color: #235248;
+  background: #e7f1ed;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.attachment-pill button {
+  min-width: auto;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.attach-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid #c4ccd2;
+  border-radius: 8px;
+  color: #394650;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attach-button input {
+  display: none;
 }
 
 .admin-page {

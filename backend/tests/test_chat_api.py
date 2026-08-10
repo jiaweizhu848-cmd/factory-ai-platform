@@ -554,11 +554,18 @@ def test_api_v1_vision_analyze_returns_standard_response_when_enabled(
     monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
     monkeypatch.setattr(settings, "vision_enabled", True)
 
-    async def fake_create_vision_completion(prompt, image_url, temperature, max_tokens):
+    async def fake_create_vision_completion(
+        prompt,
+        image_url,
+        temperature,
+        max_tokens,
+        system_prompt,
+    ):
         assert prompt == "Analyze this PCB"
         assert image_url == "data:image/jpeg;base64,abc"
         assert temperature == 0.2
         assert max_tokens == 512
+        assert "不要输出推理过程" in system_prompt
         return {"role": "assistant", "content": "vision answer"}
 
     monkeypatch.setattr(
