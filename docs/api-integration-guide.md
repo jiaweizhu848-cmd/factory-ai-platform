@@ -61,6 +61,14 @@ GET /api/v1/logs/summary
 
 需要 Bearer token。用于快速查看当前 JSONL 日志中的调用总量、成功/失败数量、平均耗时、调用方分布和错误码分布。
 
+### 2.4 图片分析
+
+```text
+POST /api/v1/vision/analyze
+```
+
+需要 Bearer token。用于接收图片和提示词。当前默认返回 `vision_model_not_configured`，因为现有 vLLM 模型按纯文本模型运行；后续切换到 Qwen-VL 类模型后，再把该接口接入真正的图片理解。
+
 ## 3. 认证
 
 后端通过环境变量配置可用 token：
@@ -273,6 +281,34 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+图片分析请求格式：
+
+```json
+{
+  "input": "分析该 PCB，使用了多少 MLCC 和芯片",
+  "caller": "automate",
+  "image": "data:image/jpeg;base64,...",
+  "metadata": {
+    "line": "G77",
+    "station": "AOI",
+    "image_name": "test.jpg"
+  }
+}
+```
+
+当前未配置视觉模型时的响应：
+
+```json
+{
+  "status": "error",
+  "request_id": "generated-uuid",
+  "error": {
+    "code": "vision_model_not_configured",
+    "message": "Current vLLM model does not support image input"
+  }
+}
+```
+
 ## 9. 调用日志
 
 日志路径由环境变量控制：
@@ -291,6 +327,7 @@ export API_LOG_PATH="logs/api_calls.jsonl"
 | `task_type` | 任务类型。 |
 | `metadata` | 调用方传入的附加信息。 |
 | `input_chars` | 输入字符数。 |
+| `image_chars` | 图片 data URL 字符数，仅视觉接口记录。 |
 | `status` | `ok` 或 `error`。 |
 | `duration_ms` | 请求耗时。 |
 | `error_code` | 失败时记录。 |
@@ -342,6 +379,7 @@ curl http://localhost:8080/api/v1/logs/summary \
 
 - 每个调用方使用独立 `caller`，便于后续统计和排查。
 - `metadata` 里放结构化信息，不要把完整问题重复塞进去。
+- 图片分析应使用 `/api/v1/vision/analyze`，不要把 base64 图片塞进 `/api/v1/chat` 的 `metadata`。
 - 调用方应保存返回的 `request_id`，方便与后端日志对应。
 - 业务系统不要依赖模型回答的固定句式，只依赖 API 字段结构。
 - 生产化前应增加 HTTPS、正式 token 管理、限流、持久化审计和服务监控。

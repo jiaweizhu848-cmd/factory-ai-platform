@@ -45,6 +45,15 @@ class ApiChatResponse(BaseModel):
     duration_ms: int
 
 
+class VisionAnalyzeRequest(BaseModel):
+    input: str = Field(min_length=1)
+    caller: str = Field(min_length=1)
+    image: str = Field(min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    max_tokens: int = Field(default=512, ge=1, le=8192)
+
+
 class AdminLoginRequest(BaseModel):
     password: str = Field(min_length=1)
 

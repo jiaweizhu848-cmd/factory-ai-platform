@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     api_rate_limit_window_seconds: int = 60
     admin_password: str = "factory-admin"
     admin_session_token: str = "factory-admin-session"
+    vision_enabled: bool = False
 
     model_config = SettingsConfigDict(env_prefix="", env_file=".env")
 

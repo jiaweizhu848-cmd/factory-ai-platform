@@ -346,6 +346,7 @@ label {
 }
 
 input,
+select,
 .form-grid textarea {
   width: 100%;
   border: 1px solid #cbd3d8;
@@ -360,7 +361,13 @@ input {
   padding: 8px 10px;
 }
 
+select {
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
 input:focus,
+select:focus,
 .form-grid textarea:focus {
   border-color: #2f7d69;
   box-shadow: 0 0 0 3px rgba(47, 125, 105, 0.15);

@@ -81,6 +81,14 @@ API call summary:
 GET /api/v1/logs/summary
 ```
 
+Vision analysis endpoint:
+
+```text
+POST /api/v1/vision/analyze
+```
+
+`/api/v1/vision/analyze` is reserved for image analysis. It currently returns `vision_model_not_configured` unless a vision-capable vLLM model is configured.
+
 Authentication uses a static bearer token from the backend environment:
 
 ```bash

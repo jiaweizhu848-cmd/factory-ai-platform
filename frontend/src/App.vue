@@ -31,12 +31,14 @@ const adminLoading = ref(false);
 const adminError = ref("");
 const adminSummary = ref(null);
 const apiExample = ref({
+  endpointType: "chat",
   apiToken: "factory-dev-token",
   caller: "line-dashboard",
   taskType: "chat",
   line: "G77",
   station: "EWI",
   input: "Explain what this alarm means: EWI station cannot reach MOM.",
+  image: "data:image/jpeg;base64,...",
 });
 const copiedTarget = ref("");
 
@@ -47,26 +49,40 @@ const canClear = computed(
 
 const curlExample = computed(() => {
   const payload = buildExamplePayload();
-  return `curl -X POST http://localhost:8080/api/v1/chat \\
+  return `curl -X POST http://localhost:8080${examplePath.value} \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiExample.value.apiToken}" \\
   -d '${JSON.stringify(payload, null, 2)}'`;
 });
 
+const examplePath = computed(() =>
+  apiExample.value.endpointType === "vision"
+    ? "/api/v1/vision/analyze"
+    : "/api/v1/chat",
+);
+
 const powershellExample = computed(() => {
-  const metadata = buildExamplePayload().metadata;
+  const payload = buildExamplePayload();
+  const metadata = payload.metadata;
+  const taskTypeLine =
+    apiExample.value.endpointType === "chat"
+      ? `  task_type = "${escapePowerShellString(apiExample.value.taskType)}"\n`
+      : "";
+  const imageLine =
+    apiExample.value.endpointType === "vision"
+      ? `  image = "${escapePowerShellString(apiExample.value.image)}"\n`
+      : "";
   return `$body = @{
   input = "${escapePowerShellString(apiExample.value.input)}"
   caller = "${escapePowerShellString(apiExample.value.caller)}"
-  task_type = "${escapePowerShellString(apiExample.value.taskType)}"
-  metadata = @{
+${taskTypeLine}${imageLine}  metadata = @{
     line = "${escapePowerShellString(metadata.line)}"
     station = "${escapePowerShellString(metadata.station)}"
   }
 } | ConvertTo-Json
 
 Invoke-RestMethod \`
-  -Uri "http://localhost:8080/api/v1/chat" \`
+  -Uri "http://localhost:8080${examplePath.value}" \`
   -Method Post \`
   -Headers @{ Authorization = "Bearer ${escapePowerShellString(apiExample.value.apiToken)}" } \`
   -ContentType "application/json" \`
@@ -176,15 +192,22 @@ function logoutAdmin() {
 }
 
 function buildExamplePayload() {
-  return {
+  const payload = {
     input: apiExample.value.input,
     caller: apiExample.value.caller,
-    task_type: apiExample.value.taskType,
     metadata: {
       line: apiExample.value.line,
       station: apiExample.value.station,
     },
   };
+
+  if (apiExample.value.endpointType === "vision") {
+    payload.image = apiExample.value.image;
+  } else {
+    payload.task_type = apiExample.value.taskType;
+  }
+
+  return payload;
 }
 
 async function copyText(target, text) {
@@ -390,6 +413,13 @@ function escapePowerShellString(value) {
           <h3>接入示例生成</h3>
           <div class="form-grid">
             <label>
+              endpoint
+              <select v-model="apiExample.endpointType">
+                <option value="chat">文本聊天 /api/v1/chat</option>
+                <option value="vision">图片分析 /api/v1/vision/analyze</option>
+              </select>
+            </label>
+            <label>
               API token
               <input v-model="apiExample.apiToken" />
             </label>
@@ -397,7 +427,7 @@ function escapePowerShellString(value) {
               caller
               <input v-model="apiExample.caller" />
             </label>
-            <label>
+            <label v-if="apiExample.endpointType === 'chat'">
               task_type
               <input v-model="apiExample.taskType" />
             </label>
@@ -412,6 +442,10 @@ function escapePowerShellString(value) {
             <label>
               input
               <textarea v-model="apiExample.input"></textarea>
+            </label>
+            <label v-if="apiExample.endpointType === 'vision'">
+              image data URL
+              <textarea v-model="apiExample.image"></textarea>
             </label>
           </div>
 

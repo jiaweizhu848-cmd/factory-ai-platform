@@ -495,3 +495,52 @@ def test_api_v1_chat_returns_standard_502_and_logs(monkeypatch, tmp_path):
     log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
     assert '"status": "error"' in log_text
     assert '"error_code": "llm_request_failed"' in log_text
+
+
+def test_api_v1_vision_analyze_requires_bearer_token():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/vision/analyze",
+        json={
+            "input": "Analyze this PCB",
+            "caller": "automate",
+            "image": "data:image/jpeg;base64,abc",
+        },
+    )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["request_id"]
+
+
+def test_api_v1_vision_analyze_returns_clear_error_when_disabled(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "api_tokens", "factory-token")
+    monkeypatch.setattr(settings, "api_log_path", str(tmp_path / "api_calls.jsonl"))
+    monkeypatch.setattr(settings, "vision_enabled", False)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/vision/analyze",
+        headers={"Authorization": "Bearer factory-token"},
+        json={
+            "input": "Analyze this PCB",
+            "caller": "automate",
+            "image": "data:image/jpeg;base64,abc",
+            "metadata": {"image_name": "test.jpg"},
+        },
+    )
+
+    assert response.status_code == 501
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"]["code"] == "vision_model_not_configured"
+    assert body["request_id"]
+
+    log_text = (tmp_path / "api_calls.jsonl").read_text(encoding="utf-8")
+    assert '"caller": "automate"' in log_text
+    assert '"task_type": "vision"' in log_text
+    assert '"image_chars": 26' in log_text
+    assert '"error_code": "vision_model_not_configured"' in log_text
+    assert "data:image/jpeg;base64,abc" not in log_text

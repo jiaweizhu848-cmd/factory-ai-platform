@@ -15,6 +15,7 @@ from app.schemas import (
     ApiChatResponse,
     ChatRequest,
     ChatResponse,
+    VisionAnalyzeRequest,
 )
 from app.services.api_logger import summarize_api_call_logs, write_api_call_log
 from app.services.llm_client import LlmClientError, create_chat_completion
@@ -204,6 +205,56 @@ async def api_v1_chat(
     )
 
 
+@app.post("/api/v1/vision/analyze")
+async def api_v1_vision_analyze(
+    request: VisionAnalyzeRequest,
+    authorization: str | None = Header(default=None),
+):
+    request_id = str(uuid4())
+    started_at = time.perf_counter()
+
+    if not _is_authorized(authorization):
+        duration_ms = _duration_ms(started_at)
+        _write_vision_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="unauthorized",
+            error_message="Invalid or missing bearer token",
+        )
+        return _api_error(
+            status_code=401,
+            request_id=request_id,
+            code="unauthorized",
+            message="Invalid or missing bearer token",
+        )
+
+    if not settings.vision_enabled:
+        duration_ms = _duration_ms(started_at)
+        _write_vision_log(
+            request_id=request_id,
+            request=request,
+            status="error",
+            duration_ms=duration_ms,
+            error_code="vision_model_not_configured",
+            error_message="Current vLLM model does not support image input",
+        )
+        return _api_error(
+            status_code=501,
+            request_id=request_id,
+            code="vision_model_not_configured",
+            message="Current vLLM model does not support image input",
+        )
+
+    return _api_error(
+        status_code=501,
+        request_id=request_id,
+        code="vision_model_not_implemented",
+        message="Vision model support is not implemented yet",
+    )
+
+
 def _prepare_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
     if messages and messages[0]["role"] == "system":
         return messages
@@ -282,6 +333,32 @@ def _write_api_log(
         "task_type": request.task_type,
         "metadata": request.metadata,
         "input_chars": len(request.input),
+        "status": status,
+        "duration_ms": duration_ms,
+    }
+    if error_code:
+        entry["error_code"] = error_code
+        entry["error_message"] = error_message
+    write_api_call_log(settings.api_log_path, entry)
+
+
+def _write_vision_log(
+    *,
+    request_id: str,
+    request: VisionAnalyzeRequest,
+    status: str,
+    duration_ms: int,
+    error_code: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    entry = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "request_id": request_id,
+        "caller": request.caller,
+        "task_type": "vision",
+        "metadata": request.metadata,
+        "input_chars": len(request.input),
+        "image_chars": len(request.image),
         "status": status,
         "duration_ms": duration_ms,
     }
