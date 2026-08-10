@@ -564,7 +564,7 @@ def test_api_v1_vision_analyze_returns_standard_response_when_enabled(
         assert prompt == "Analyze this PCB"
         assert image_url == "data:image/jpeg;base64,abc"
         assert temperature == 0.2
-        assert max_tokens == 512
+        assert max_tokens == 2048
         assert "不要输出推理过程" in system_prompt
         return {"role": "assistant", "content": "vision answer"}
 

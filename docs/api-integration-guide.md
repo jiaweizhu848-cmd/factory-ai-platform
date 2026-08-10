@@ -318,6 +318,8 @@ export VLLM_MODEL="<支持图片输入的 Qwen-VL 模型 ID>"
 
 注意：只把 `VISION_ENABLED` 改成 `true` 不够。Ubuntu 上 vLLM 当前运行的模型必须支持 OpenAI-compatible vision 输入；如果仍然运行纯文本模型，接口会调用 vLLM，但大概率返回 502 / `llm_request_failed`。
 
+视觉接口默认 `max_tokens=2048`，用于避免较长的 PCB 分析、器件计数、价格范围和应用领域回答被过早截断。网页聊天框拖入图片时，只发送当前输入和当前图片，不发送历史聊天记录，避免上下文污染。
+
 ## 9. 调用日志
 
 日志路径由环境变量控制：
